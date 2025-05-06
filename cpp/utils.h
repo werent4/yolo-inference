@@ -10,6 +10,7 @@
 #pragma once
 
 #include <iostream>
+#include <cstdint>
 
 /**
  * @description:   float32 to float16, refer to https://github.com/Tencent/ncnn/blob/master/src/mat.cpp
