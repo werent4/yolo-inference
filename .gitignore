@@ -4,6 +4,8 @@
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+result
+convertors
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -21,6 +23,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+.venv/
 venv/
 ENV/
 *.egg-info/

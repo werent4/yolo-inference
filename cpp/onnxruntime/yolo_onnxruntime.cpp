@@ -175,6 +175,42 @@ void YOLO_ONNXRuntime_Segment::init(const Algo_Type algo_type, const Device_Type
 	m_output1_host = (float*)malloc(sizeof(float) * m_output_numseg);
 }
 
+void YOLO_ONNXRuntime_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+{
+	// this code is same as YOLO_ONNXRuntime_Classify::init 
+	// TODO: refactor this code 
+	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
+	{
+		std::cerr << "unsupported algo type!" << std::endl;
+		std::exit(-1);
+	}
+	YOLO_ONNXRuntime::init(algo_type, device_type, model_type, model_path);
+
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+
+	for (size_t i = 0; i < m_session->GetInputCount(); i++)
+	{
+		m_input_names.push_back("images");
+	}
+
+	for (size_t i = 0; i < m_session->GetOutputCount(); i++)
+	{
+		m_output_names.push_back("output0");
+	}
+
+	if (m_model_type == FP16)
+	{
+		m_input_fp16.resize(m_input_numel);
+		m_output_fp16.resize(m_class_num);
+	}
+	m_output_host = (float*)malloc(sizeof(float) * m_class_num);
+}
+
 void YOLO_ONNXRuntime_Classify::pre_process()
 {
 	cv::Mat crop_image;
@@ -264,6 +300,61 @@ void YOLO_ONNXRuntime_Segment::pre_process()
 	cv::split(letterbox, split_images);
 	m_input.clear();
 	for (size_t i = 0; i < letterbox.channels(); ++i)
+	{
+		std::vector<float> split_image_data = split_images[i].reshape(1, 1);
+		m_input.insert(m_input.end(), split_image_data.begin(), split_image_data.end());
+	}
+
+	if (m_model_type == FP16)
+	{
+		for (size_t i = 0; i < m_input_numel; i++)
+		{
+			m_input_fp16[i] = float32_to_float16(m_input[i]);
+		}
+	}
+}
+
+void YOLO_ONNXRuntime_MuliLabelClassify::pre_process()
+{
+	cv::Mat crop_image;
+	if (m_algo_type == YOLOv5)
+	{
+		//CenterCrop
+		int crop_size = std::min(m_image.cols, m_image.rows);
+		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
+		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+
+		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+	}
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+
+		if (m_image.cols > m_image.rows)
+			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+		else
+			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+
+		//CenterCrop
+		int crop_size = std::min(crop_image.cols, crop_image.rows);
+		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
+		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+	}
+
+	std::vector<cv::Mat> split_images;
+	cv::split(crop_image, split_images);
+	m_input.clear();
+	for (size_t i = 0; i < crop_image.channels(); ++i)
 	{
 		std::vector<float> split_image_data = split_images[i].reshape(1, 1);
 		m_input.insert(m_input.end(), split_image_data.begin(), split_image_data.end());
@@ -377,6 +468,39 @@ void YOLO_ONNXRuntime_Segment::process()
 		}
 	}
 }
+
+void YOLO_ONNXRuntime_MuliLabelClassify::process()
+{
+	//input_tensor
+	auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+	Ort::Value input_tensor{ nullptr };
+
+	std::vector<int64_t> input_node_dims = { 1, m_image.channels(), m_input_width, m_input_height };
+	if (m_model_type == FP32 || m_model_type == INT8)
+		input_tensor = Ort::Value::CreateTensor(memory_info, m_input.data(), sizeof(float) * m_input_numel, input_node_dims.data(), input_node_dims.size(), ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+	else if (m_model_type == FP16)
+		input_tensor = Ort::Value::CreateTensor(memory_info, m_input_fp16.data(), sizeof(uint16_t) * m_input_numel, input_node_dims.data(), input_node_dims.size(), ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16);
+	
+	std::vector<Ort::Value> ort_inputs;
+	ort_inputs.push_back(std::move(input_tensor));
+
+	std::vector<Ort::Value> outputs = m_session->Run(Ort::RunOptions{ nullptr }, m_input_names.data(), ort_inputs.data(), m_input_names.size(), m_output_names.data(), m_output_names.size());
+
+	//output_tensor
+	if (m_model_type == FP32 || m_model_type == INT8)
+	{
+		m_output_host = const_cast<float*> (outputs[0].GetTensorData<float>());
+	}
+	else if (m_model_type == FP16)
+	{
+		std::copy(const_cast<uint16_t*> (outputs[0].GetTensorData<uint16_t>()), const_cast<uint16_t*> (outputs[0].GetTensorData<uint16_t>()) + m_class_num, m_output_fp16.begin());
+		for (size_t i = 0; i < m_class_num; i++)
+		{
+			m_output_host[i] = float16_to_float32(m_output_fp16[i]);
+		}
+	}
+}
+
 
 void YOLO_ONNXRuntime_Classify::post_process()
 {
@@ -580,6 +704,27 @@ void YOLO_ONNXRuntime_Segment::post_process()
 
 	if(m_draw_result)
 		draw_result(m_output_seg);
+}
+
+void YOLO_ONNXRuntime_MuliLabelClassify::post_process()
+{
+	std::vector<float> scores;
+	float sum = 0.0f;
+	for (size_t i = 0; i < m_class_num; i++)
+	{
+		scores.push_back(m_output_host[i]);
+		sum += exp(m_output_host[i]);
+	}
+	int id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
+
+	m_output_multicls.id = id;
+	if (m_algo_type == YOLOv5)
+		m_output_multicls.score = exp(scores[id]) / sum;
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+		m_output_multicls.score = scores[id];
+
+	if(m_draw_result)
+		draw_result(m_output_multicls);
 }
 
 void YOLO_ONNXRuntime::release()
