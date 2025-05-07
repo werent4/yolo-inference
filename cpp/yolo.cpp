@@ -73,6 +73,7 @@ void YOLO::infer(const std::string file_path, bool save_result, bool show_result
 		{
 			std::string result_name = "./result/" + std::string(argv[1]) + std::string(argv[2]) + std::string(argv[3]) + std::string(argv[4]) + std::string(argv[5]) + ".jpg";
 			cv::imwrite(result_name, m_result);
+			std::cout << "save result to " << result_name << std::endl;
 		}
 		if (show_result)
 		{
@@ -184,7 +185,7 @@ std::unique_ptr<YOLO> CreateFactory::create(const Backend_Type& backend_type, co
 
 CreateFactory::CreateFactory()
 {
-	m_create_registry.resize(5, std::vector<CreateFunction>(3));
+	m_create_registry.resize(5, std::vector<CreateFunction>(4));
 
 #ifdef _YOLO_LIBTORCH
 	register_class(Backend_Type::Libtorch, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_Classify>(); });
@@ -200,10 +201,12 @@ CreateFactory::CreateFactory()
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_ONNXRuntime_Classify>(); });
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Detect, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_ONNXRuntime_Detect>(); });
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Segment, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_ONNXRuntime_Segment>(); });
+	register_class(Backend_Type::ONNXRuntime, Task_Type::MuliLabelClassify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_ONNXRuntime_MuliLabelClassify>(); });
 #else
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return nullptr; });
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Detect, []() -> std::unique_ptr<YOLO> { return nullptr; });
 	register_class(Backend_Type::ONNXRuntime, Task_Type::Segment, []() -> std::unique_ptr<YOLO> { return nullptr; });
+	register_class(Backend_Type::ONNXRuntime, Task_Type::MuliLabelClassify, []() -> std::unique_ptr<YOLO> { return nullptr; });
 #endif // _YOLO_ONNXRuntime
 
 #ifdef _YOLO_OPENCV

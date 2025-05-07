@@ -12,6 +12,7 @@
 #include "yolo_classify.h"
 #include "yolo_detect.h"
 #include "yolo_segment.h"
+#include "yolo_multiclassify.h"
 #include "utils.h"
 #include <onnxruntime_cxx_api.h>
 
@@ -191,4 +192,41 @@ private:
 	 * @description: output1 fp16 data 
 	 */
 	std::vector<uint16_t> m_output1_fp16;
+};
+
+/**
+ * @description: onnxruntime inference class for the yolo multi label classification algorithm
+ */
+class YOLO_ONNXRuntime_MuliLabelClassify : public YOLO_ONNXRuntime, public YOLO_MultiClassify
+{
+	
+public:
+	/**
+	 * @description: 					initialization interface
+	 * @param {Algo_Type} algo_type		algorithm type
+	 * @param {Device_Type} device_type	device type
+	 * @param {Model_Type} model_type	model type
+	 * @param {string} model_path		model path
+	 * @return {*}
+	 */
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+
+private:
+	/**
+	 * @description: model pre-process
+	 * @return {*}
+	 */
+	void pre_process();
+
+	/**
+	 * @description: model inference
+	 * @return {*}
+	 */
+	void process();
+
+	/**
+	 * @description: model post-process
+	 * @return {*}
+	 */
+	void post_process();
 };
