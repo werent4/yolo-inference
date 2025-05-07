@@ -55,7 +55,7 @@ INT8=2
 ## GPU inference
 # -----------------------------------------------------------------------------
 
-./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n.trans.onnx"
+./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 
 
 
@@ -72,10 +72,7 @@ INT8=2
 # -----------------------------------------------------------------------------
 # Libtorch backend runs
 # -----------------------------------------------------------------------------
-
-# echo -e "${BLUE}Running YOLOv11 classification with LibTorch on CPU (FP32)${NC}"
-# ./build/yolo $LIBTORCH $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/yolo11n.torchscript"
-# echo -e "${GREEN}Inference complete!${NC}\n"
+# ./build/yolo $LIBTORCH $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
 
 # -----------------------------------------------------------------------------
 # OpenCV backend runs
