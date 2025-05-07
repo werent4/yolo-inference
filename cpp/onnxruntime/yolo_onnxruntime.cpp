@@ -8,6 +8,7 @@
  */
 
 #include <thread>
+#include <numeric>
 #include "yolo_onnxruntime.h"
 
 void YOLO_ONNXRuntime::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
@@ -708,20 +709,40 @@ void YOLO_ONNXRuntime_Segment::post_process()
 
 void YOLO_ONNXRuntime_MuliLabelClassify::post_process()
 {
-	std::vector<float> scores;
-	float sum = 0.0f;
+	m_output_multicls.ids.clear();
+	m_output_multicls.scores.clear();
+
 	for (size_t i = 0; i < m_class_num; i++)
 	{
-		scores.push_back(m_output_host[i]);
-		sum += exp(m_output_host[i]);
+		float score = m_output_host[i];
+		score = 1.0f / (1.0f + exp(-score));
+		if (score < m_score_threshold)
+			continue;
+		m_output_multicls.ids.push_back(i);
+		m_output_multicls.scores.push_back(score);
 	}
-	int id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
 
-	m_output_multicls.id = id;
-	if (m_algo_type == YOLOv5)
-		m_output_multicls.score = exp(scores[id]) / sum;
-	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
-		m_output_multicls.score = scores[id];
+
+	// Sort scores in descending order
+	if (!m_output_multicls.ids.empty())
+	{
+		std::vector<size_t> indices(m_output_multicls.scores.size());
+		std::iota(indices.begin(), indices.end(), 0); 
+	
+		std::sort(indices.begin(), indices.end(), 
+			[&](size_t a, size_t b){return m_output_multicls.scores[a] > m_output_multicls.scores[b];});
+
+		std::vector<int> sorted_ids;
+		std::vector<float> sorted_scores;
+
+		for (size_t idx : indices) {
+			sorted_ids.push_back(m_output_multicls.ids[idx]);
+			sorted_scores.push_back(m_output_multicls.scores[idx]);
+		}
+	
+		m_output_multicls.ids = sorted_ids; 
+		m_output_multicls.scores = sorted_scores;
+	}
 
 	if(m_draw_result)
 		draw_result(m_output_multicls);

@@ -185,7 +185,7 @@ std::unique_ptr<YOLO> CreateFactory::create(const Backend_Type& backend_type, co
 
 CreateFactory::CreateFactory()
 {
-	m_create_registry.resize(5, std::vector<CreateFunction>(3));
+	m_create_registry.resize(5, std::vector<CreateFunction>(4));
 
 #ifdef _YOLO_LIBTORCH
 	register_class(Backend_Type::Libtorch, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_Classify>(); });

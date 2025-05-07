@@ -9,6 +9,8 @@
 
 #pragma once
 
+// #include <vector>
+
 #include "yolo.h"
 #include "utils.h"
 
@@ -17,11 +19,8 @@
  */
 struct OutputMultiCls
 {
-    // std::vector<int> ids;             //class id
-    // std::vector<float> scores;        //score
-    // for testing
-	int id;             //class id 
-	float score;   		//score
+	std::vector<int> ids;           //class id 
+	std::vector<float> scores;   	//score
 };
 
 /**
@@ -35,31 +34,22 @@ struct OutputMultiCls
 	 * @description: 								draw result
 	 * @param {OutputCls} output_cls				classification model output
 	 */
-	// void draw_result(OutputMultiCls output_multicls)
-	// {
-	// 	int baseLine;
-    // 	m_result = m_image.clone();
-    //     for (size_t i = 0; i < output_multicls.ids.size(); ++i)
-    //     {
-    //         std::string label = "class" + std::to_string(output_multicls.ids[i]) + ":" + cv::format("%.2f", output_multicls.scores[i]);
-    //         cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1, 1, &baseLine);
-    //         cv::putText(m_result, label, cv::Point(0, (i+1) * (label_size.height + 10)), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 1);
-    //     }
-	// }
-
 	void draw_result(OutputMultiCls output_multicls)
 	{
 		int baseLine;
     	m_result = m_image.clone();
-		std::string label = "class" + std::to_string(output_multicls.id) + ":" + cv::format("%.2f", output_multicls.score);
-		cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1, 1, &baseLine);
-		cv::putText(m_result, label, cv::Point(0, label_size.height), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 1);
+        for (size_t i = 0; i < output_multicls.ids.size(); ++i)
+        {
+            std::string label = "class" + std::to_string(output_multicls.ids[i]) + ":" + cv::format("%.2f", output_multicls.scores[i]);
+            cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1, 1, &baseLine);
+            cv::putText(m_result, label, cv::Point(0, (i+1) * (label_size.height + 10)), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 1);
+        }
 	}
 
     /**
      * @description: confidence threshold for multi label classification
      */
-    float m_confidence_threshold = 0.5;
+    float m_score_threshold = 0.85;
 
     /**
      * @description: class num for multi label classification
