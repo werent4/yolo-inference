@@ -49,7 +49,7 @@ struct OutputMultiCls
     /**
      * @description: confidence threshold for multi label classification
      */
-    float m_score_threshold = 0.55;
+    float m_score_threshold = 0.53;
 
     /**
      * @description: class num for multi label classification
