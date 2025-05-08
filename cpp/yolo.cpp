@@ -191,10 +191,12 @@ CreateFactory::CreateFactory()
 	register_class(Backend_Type::Libtorch, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_Classify>(); });
 	register_class(Backend_Type::Libtorch, Task_Type::Detect, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_Detect>(); });
 	register_class(Backend_Type::Libtorch, Task_Type::Segment, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_Segment>(); });
+	register_class(Backend_Type::Libtorch, Task_Type::MuliLabelClassify, []() -> std::unique_ptr<YOLO> { return std::make_unique<YOLO_Libtorch_MultiLabelClassify>(); });
 #else
 	register_class(Backend_Type::Libtorch, Task_Type::Classify, []() -> std::unique_ptr<YOLO> { return nullptr; });
 	register_class(Backend_Type::Libtorch, Task_Type::Detect, []() -> std::unique_ptr<YOLO> { return nullptr; });
 	register_class(Backend_Type::Libtorch, Task_Type::Segment, []() -> std::unique_ptr<YOLO> { return nullptr; });
+	register_class(Backend_Type::Libtorch, Task_Type::MuliLabelClassify, []() -> std::unique_ptr<YOLO> { return nullptr; });
 #endif // _YOLO_Libtorch
 
 #ifdef _YOLO_ONNXRUNTIME

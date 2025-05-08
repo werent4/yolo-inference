@@ -115,6 +115,24 @@ void YOLO_Libtorch_Segment::init(const Algo_Type algo_type, const Device_Type de
 	m_output1_host = new float[m_output_numseg];
 }
 
+void YOLO_Libtorch_MultiLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+{
+	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
+	{
+		std::cerr << "unsupported algo type!" << std::endl;
+		std::exit(-1);
+	}
+	YOLO_Libtorch::init(algo_type, device_type, model_type, model_path);
+
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+	m_output_host = new float[m_class_num];
+}
+
 void YOLO_Libtorch_Classify::pre_process()
 {
 	cv::Mat crop_image;
@@ -216,6 +234,59 @@ void YOLO_Libtorch_Segment::pre_process()
 	m_input.emplace_back(input);
 }
 
+void YOLO_Libtorch_MultiLabelClassify::pre_process()
+{
+	cv::Mat crop_image;
+	if (m_algo_type == YOLOv5)
+	{
+		//CenterCrop
+		int crop_size = std::min(m_image.cols, m_image.rows);
+		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
+		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+
+		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+	}
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+
+		if (m_image.cols > m_image.rows)
+			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+		else
+			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+
+		//CenterCrop
+		int crop_size = std::min(crop_image.cols, crop_image.rows);
+		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
+		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+	}
+
+
+	torch::Tensor input;
+	if (m_model_type == FP32)
+	{
+		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kFloat).to(m_device);
+	}
+	else if (m_model_type == FP16)
+	{
+		crop_image.convertTo(crop_image, CV_16FC3);
+		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kHalf).to(m_device);
+	}
+	input = input.permute({ 0, 3, 1, 2 }).contiguous();
+	m_input.clear();
+	m_input.emplace_back(input);
+}
+
 void YOLO_Libtorch_Classify::process()
 {
 	m_output = m_module.forward(m_input);
@@ -272,6 +343,37 @@ void YOLO_Libtorch_Segment::process()
 	pred1 = m_output.toTuple()->elements()[1].toTensor().to(torch::kFloat).to(at::kCPU);
 	std::copy(pred0.data_ptr<float>(), pred0.data_ptr<float>() + m_output_numdet, m_output0_host);
 	std::copy(pred1.data_ptr<float>(), pred1.data_ptr<float>() + m_output_numseg, m_output1_host);
+}
+
+void YOLO_Libtorch_MultiLabelClassify::process()
+{
+    m_output = m_module.forward(m_input);
+
+	torch::Tensor pred;
+	if (m_algo_type == YOLOv5)
+	{
+		if (m_device == at::kCPU)
+		{
+			pred = m_output.toTensor().to(at::kCPU);
+		}
+		if (m_device == at::kCUDA)
+		{
+			pred = m_output.toTensor().to(torch::kFloat).to(at::kCPU);
+		}
+	}
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		if (m_device == at::kCPU)
+		{
+			pred = m_output.toTensor().to(at::kCPU);
+		}
+		if (m_device == at::kCUDA)
+		{
+			pred = m_output.toTensor().to(torch::kFloat).to(at::kCPU);
+		}
+	}
+
+	std::copy(pred.data_ptr<float>(), pred.data_ptr<float>() + m_class_num, m_output_host);
 }
 
 void YOLO_Libtorch_Classify::post_process()
@@ -477,3 +579,41 @@ void YOLO_Libtorch_Segment::post_process()
 	if(m_draw_result)
 		draw_result(m_output_seg);
 }
+
+void YOLO_Libtorch_MultiLabelClassify::post_process()
+{
+	m_output_multicls.ids.clear();
+	m_output_multicls.scores.clear();
+	for (size_t i = 0; i < m_class_num; i++)
+	{
+		float score = m_output_host[i];
+		score = 1.0f / (1.0f + exp(-score));
+		if (score < m_score_threshold)
+			continue;
+		m_output_multicls.ids.push_back(i);
+		m_output_multicls.scores.push_back(score);
+	}
+	if (!m_output_multicls.ids.empty())
+	{
+		std::vector<size_t> indices(m_output_multicls.scores.size());
+		std::iota(indices.begin(), indices.end(), 0); 
+	
+		std::sort(indices.begin(), indices.end(), 
+			[&](size_t a, size_t b){return m_output_multicls.scores[a] > m_output_multicls.scores[b];});
+
+		std::vector<int> sorted_ids;
+		std::vector<float> sorted_scores;
+
+		for (size_t idx : indices) {
+			sorted_ids.push_back(m_output_multicls.ids[idx]);
+			sorted_scores.push_back(m_output_multicls.scores[idx]);
+		}
+	
+		m_output_multicls.ids = sorted_ids; 
+		m_output_multicls.scores = sorted_scores;
+	}
+
+	if(m_draw_result)
+		draw_result(m_output_multicls);
+}
+

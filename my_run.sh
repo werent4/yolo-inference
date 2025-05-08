@@ -72,7 +72,7 @@ INT8=2
 # -----------------------------------------------------------------------------
 # Libtorch backend runs
 # -----------------------------------------------------------------------------
-# ./build/yolo $LIBTORCH $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
+./build/yolo $LIBTORCH $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
 
 # -----------------------------------------------------------------------------
 # OpenCV backend runs
