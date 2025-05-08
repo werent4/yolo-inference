@@ -72,7 +72,7 @@ INT8=2
 # -----------------------------------------------------------------------------
 # Libtorch backend runs
 # -----------------------------------------------------------------------------
-# ./build/yolo $LIBTORCH $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
+./build/yolo $LIBTORCH $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
 
 # -----------------------------------------------------------------------------
 # OpenCV backend runs
@@ -101,4 +101,4 @@ INT8=2
 # -----------------------------------------------------------------------------
 # TensorRT backend runs
 # -----------------------------------------------------------------------------
-./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
+#./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
