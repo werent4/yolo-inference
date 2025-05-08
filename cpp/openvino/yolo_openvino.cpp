@@ -7,6 +7,7 @@
  * @Description: openvino inference source file for YOLO algorithm
  */
 
+#include <numeric> 
 #include "yolo_openvino.h"
 
 void YOLO_OpenVINO::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
@@ -97,6 +98,23 @@ void YOLO_OpenVINO_Segment::init(const Algo_Type algo_type, const Device_Type de
 	m_output_numseg = m_mask_params.seg_channels * m_mask_params.seg_width * m_mask_params.seg_height;
 }
 
+void YOLO_OpenVINO_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+{
+	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
+	{
+		std::cerr << "unsupported algo type!" << std::endl;
+		std::exit(-1);
+	}
+	YOLO_OpenVINO::init(algo_type, device_type, model_type, model_path);
+
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+}
+
 void YOLO_OpenVINO_Classify::pre_process()
 {
 	cv::Mat crop_image;
@@ -149,6 +167,44 @@ void YOLO_OpenVINO_Segment::pre_process()
 	cv::dnn::blobFromImage(letterbox, m_input, 1. / 255., cv::Size(m_input_width, m_input_height), cv::Scalar(), true, false);
 }
 
+void YOLO_OpenVINO_MuliLabelClassify::pre_process()
+{
+	cv::Mat crop_image;
+	if (m_algo_type == YOLOv5)
+	{
+		//CenterCrop
+		int crop_size = std::min(m_image.cols, m_image.rows);
+		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
+		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+	}
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+
+		if (m_image.cols > m_image.rows)
+			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+		else
+			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+
+		//CenterCrop
+		int crop_size = std::min(crop_image.cols, crop_image.rows);
+		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
+		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+	}
+
+	cv::dnn::blobFromImage(crop_image, m_input, 1, cv::Size(crop_image.cols, crop_image.rows), cv::Scalar(), true, false);
+}
+
 void YOLO_OpenVINO_Classify::process()
 {
 	ov::Tensor input_tensor(m_input_port.get_element_type(), m_input_port.get_shape(), m_input.ptr(0)); //Create tensor from external memory
@@ -172,6 +228,14 @@ void YOLO_OpenVINO_Segment::process()
 	m_infer_request.infer(); //Start inference
 	m_output0_host = (float*)m_infer_request.get_output_tensor(0).data();  //Get the inference result 
 	m_output1_host = (float*)m_infer_request.get_output_tensor(1).data();
+}
+
+void YOLO_OpenVINO_MuliLabelClassify::process()
+{
+	ov::Tensor input_tensor(m_input_port.get_element_type(), m_input_port.get_shape(), m_input.ptr(0)); //Create tensor from external memory
+	m_infer_request.set_input_tensor(input_tensor); // Set input tensor for model with one input
+	m_infer_request.infer(); //Start inference
+	m_output_host = (float*)m_infer_request.get_output_tensor(0).data();  //Get the inference result 
 }
 
 void YOLO_OpenVINO_Classify::post_process()
@@ -376,4 +440,44 @@ void YOLO_OpenVINO_Segment::post_process()
 
 	if(m_draw_result)
 		draw_result(m_output_seg);
+}
+
+void YOLO_OpenVINO_MuliLabelClassify::post_process()
+{
+	m_output_multicls.ids.clear();
+	m_output_multicls.scores.clear();
+
+	for (size_t i = 0; i < m_class_num; i++)
+	{
+		float score = m_output_host[i];
+		score = 1.0f / (1.0f + exp(-score));
+		if (score < m_score_threshold)
+			continue;
+		m_output_multicls.ids.push_back(i);
+		m_output_multicls.scores.push_back(score);
+	}
+
+	// Sort scores in descending order
+	if (!m_output_multicls.ids.empty())
+	{
+		std::vector<size_t> indices(m_output_multicls.scores.size());
+		std::iota(indices.begin(), indices.end(), 0); 
+	
+		std::sort(indices.begin(), indices.end(), 
+			[&](size_t a, size_t b){return m_output_multicls.scores[a] > m_output_multicls.scores[b];});
+
+		std::vector<int> sorted_ids;
+		std::vector<float> sorted_scores;
+
+		for (size_t idx : indices) {
+			sorted_ids.push_back(m_output_multicls.ids[idx]);
+			sorted_scores.push_back(m_output_multicls.scores[idx]);
+		}
+	
+		m_output_multicls.ids = sorted_ids; 
+		m_output_multicls.scores = sorted_scores;
+	}
+
+	if(m_draw_result)
+		draw_result(m_output_multicls);
 }
