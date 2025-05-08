@@ -55,7 +55,7 @@ INT8=2
 ## GPU inference
 # -----------------------------------------------------------------------------
 
-./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
+# ./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 
 
 
@@ -93,7 +93,10 @@ INT8=2
 # -----------------------------------------------------------------------------
 # OpenVINO backend runs
 # -----------------------------------------------------------------------------
-# No OpenVINO runs in the provided list
+
+# ./build/yolo $OPENVINO $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
+
+./build/yolo $OPENVINO $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
 
 # -----------------------------------------------------------------------------
 # TensorRT backend runs
