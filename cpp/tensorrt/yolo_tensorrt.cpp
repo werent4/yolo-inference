@@ -7,6 +7,7 @@
  * @Description: tensorrt inference source file for YOLO algorithm
  */
 
+#include <numeric>
 #include "yolo_tensorrt.h"
 #include "preprocess.cuh"
 #include "decode.cuh"
@@ -179,6 +180,32 @@ void YOLO_TensorRT_Segment::init(const Algo_Type algo_type, const Device_Type de
 #endif // _CUDA_PREPROCESS
 }
 
+void YOLO_TensorRT_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+{
+	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
+	{
+		std::cerr << "unsupported algo type!" << std::endl;
+		std::exit(-1);
+	}
+	YOLO_TensorRT::init(algo_type, device_type, model_type, model_path);
+
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+
+	cudaMallocHost(&m_input_host, m_max_input_size);
+	cudaMallocHost(&m_output_host, sizeof(float) * m_class_num);
+
+	cudaMalloc(&m_input_device, m_max_input_size);
+	cudaMalloc(&m_output_device, sizeof(float) * m_class_num);
+
+	m_bindings[0] = m_input_device;
+	m_bindings[1] = m_output_device;
+}
+
 void YOLO_TensorRT_Classify::pre_process()
 {
 	cv::Mat crop_image;
@@ -280,6 +307,56 @@ void YOLO_TensorRT_Segment::pre_process()
 #endif // _CUDA_PREPROCESS
 }
 
+void YOLO_TensorRT_MuliLabelClassify::pre_process()
+{
+	cv::Mat crop_image;
+	if (m_algo_type == YOLOv5)
+	{
+		//CenterCrop
+		int crop_size = std::min(m_image.cols, m_image.rows);
+		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
+		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+	}
+	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	{
+		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+
+		if (m_image.cols > m_image.rows)
+			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+		else
+			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+
+		//CenterCrop
+		int crop_size = std::min(crop_image.cols, crop_image.rows);
+		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
+		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
+		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+
+		//Normalize
+		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+	}
+
+	int image_area = crop_image.cols * crop_image.rows;
+	float* pimage = (float*)crop_image.data;
+	float* phost_r = m_input_host + image_area * 0;
+	float* phost_g = m_input_host + image_area * 1;
+	float* phost_b = m_input_host + image_area * 2;
+	for (int i = 0; i < image_area; ++i, pimage += 3)
+	{
+		*phost_r++ = pimage[2];
+		*phost_g++ = pimage[1];
+		*phost_b++ = pimage[0];
+	}
+
+	cudaMemcpyAsync(m_input_device, m_input_host, sizeof(float) * m_input_numel, cudaMemcpyHostToDevice, m_stream);
+}
+
 void YOLO_TensorRT_Classify::process()
 {
 #if NV_TENSORRT_MAJOR < 10
@@ -316,6 +393,18 @@ void YOLO_TensorRT_Segment::process()
 
 	cudaMemcpyAsync(m_output0_host, m_output0_device, sizeof(float) * m_output_numdet, cudaMemcpyDeviceToHost, m_stream);
 	cudaMemcpyAsync(m_output1_host, m_output1_device, sizeof(float) * m_output_numseg, cudaMemcpyDeviceToHost, m_stream);
+	cudaStreamSynchronize(m_stream);
+}
+
+void YOLO_TensorRT_MuliLabelClassify::process()
+{
+#if NV_TENSORRT_MAJOR < 10
+	m_execution_context->enqueueV2((void**)m_bindings, m_stream, nullptr);
+#else
+	m_execution_context->executeV2((void**)m_bindings);
+#endif 
+
+	cudaMemcpyAsync(m_output_host, m_output_device, sizeof(float) * m_class_num, cudaMemcpyDeviceToHost, m_stream);
 	cudaStreamSynchronize(m_stream);
 }
 
@@ -570,6 +659,47 @@ void YOLO_TensorRT_Segment::post_process()
 		draw_result(m_output_seg);
 }
 
+void YOLO_TensorRT_MuliLabelClassify::post_process()
+{
+	m_output_multicls.ids.clear();
+	m_output_multicls.scores.clear();
+
+	for (size_t i = 0; i < m_class_num; i++)
+	{
+		float score = m_output_host[i];
+		score = 1.0f / (1.0f + exp(-score));
+		if (score < m_score_threshold)
+			continue;
+		m_output_multicls.ids.push_back(i);
+		m_output_multicls.scores.push_back(score);
+	}
+
+	// Sort scores in descending order
+	if (!m_output_multicls.ids.empty())
+	{
+		std::vector<size_t> indices(m_output_multicls.scores.size());
+		std::iota(indices.begin(), indices.end(), 0); 
+	
+		std::sort(indices.begin(), indices.end(), 
+			[&](size_t a, size_t b){return m_output_multicls.scores[a] > m_output_multicls.scores[b];});
+
+		std::vector<int> sorted_ids;
+		std::vector<float> sorted_scores;
+
+		for (size_t idx : indices) {
+			sorted_ids.push_back(m_output_multicls.ids[idx]);
+			sorted_scores.push_back(m_output_multicls.scores[idx]);
+		}
+	
+		m_output_multicls.ids = sorted_ids; 
+		m_output_multicls.scores = sorted_scores;
+	}
+
+	if(m_draw_result)
+		draw_result(m_output_multicls);
+}	
+
+
 void YOLO_TensorRT::release()
 {
 	cudaStreamDestroy(m_stream);
@@ -617,4 +747,11 @@ void YOLO_TensorRT_Segment::release()
 	cudaFree(m_affine_matrix_device);
 	cudaFreeHost(m_affine_matrix_host);
 #endif // _CUDA_PREPROCESS
+}
+
+void YOLO_TensorRT_MuliLabelClassify::release()
+{
+	YOLO_TensorRT::release();
+
+	cudaFree(m_output_device);
 }
