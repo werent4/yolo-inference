@@ -96,9 +96,9 @@ INT8=2
 
 # ./build/yolo $OPENVINO $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
 
-./build/yolo $OPENVINO $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
+# ./build/yolo $OPENVINO $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
 
 # -----------------------------------------------------------------------------
 # TensorRT backend runs
 # -----------------------------------------------------------------------------
-# No TensorRT runs in the provided list
+./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
