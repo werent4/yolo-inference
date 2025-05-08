@@ -12,6 +12,7 @@
 #include "yolo_classify.h"
 #include "yolo_detect.h"
 #include "yolo_segment.h"
+#include "yolo_multiclassify.h"
 #include "utils.h"
 #include <opencv2/opencv.hpp>
 
@@ -118,6 +119,36 @@ private:
  * @description: opencv inference class for the yolo segmentation algorithm
  */
 class YOLO_OpenCV_Segment : public YOLO_OpenCV, public YOLO_Segment
+{
+public:
+	/**
+	 * @description: 					initialization interface
+	 * @param {Algo_Type} algo_type		algorithm type
+	 * @param {Device_Type} device_type	device type
+	 * @param {Model_Type} model_type	model type
+	 * @param {string} model_path		model path
+	 * @return {*}
+	 */
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+
+private:
+	/**
+	 * @description: model pre-process
+	 * @return {*}
+	 */
+	void pre_process();
+
+	/**
+	 * @description: model post-process
+	 * @return {*}
+	 */
+	void post_process();
+};
+
+/**
+ * @description: opencv inference class for the yolo classification algorithm
+ */
+class YOLO_OpenCV_MuliLabelClassify : public YOLO_OpenCV, public YOLO_MultiClassify
 {
 public:
 	/**

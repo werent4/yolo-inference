@@ -157,6 +157,9 @@ private:
 	void post_process();
 };
 
+/**
+ * @description: openvino inference class for the yolo multi label classification algorithm
+ */
 class YOLO_OpenVINO_MuliLabelClassify : public YOLO_OpenVINO, public YOLO_MultiClassify
 {
 public:

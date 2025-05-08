@@ -78,17 +78,10 @@ INT8=2
 # OpenCV backend runs
 # -----------------------------------------------------------------------------
 
-# echo -e "${BLUE}Running YOLOv11 detection with OpenCV on CPU (FP32)${NC}"
-# ./build/yolo $OPENCV $DETECT $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/yolo11n.onnx"
-# echo -e "${GREEN}Inference complete!${NC}\n"
+# ./build/yolo $OPENCV $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 
-# echo -e "${BLUE}Running YOLOv11 detection with OpenCV on CPU (FP32) - Transposed model${NC}"
-# ./build/yolo $OPENCV $DETECT $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/yolo11n.trans.onnx"
-# echo -e "${GREEN}Inference complete!${NC}\n"
+./build/yolo $OPENCV $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 
-# echo -e "${BLUE}Running YOLOv8 detection with OpenCV on CPU (FP32)${NC}"
-# ./build/yolo $OPENCV $DETECT $YOLOV8 $CPU $FP32 "${WEIGHTS_DIR}/onnx/yolov8n.onnx"
-# echo -e "${GREEN}Inference complete!${NC}\n"
 
 # -----------------------------------------------------------------------------
 # OpenVINO backend runs
@@ -101,4 +94,6 @@ INT8=2
 # -----------------------------------------------------------------------------
 # TensorRT backend runs
 # -----------------------------------------------------------------------------
-#./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
+# ./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
+
+# ./build/yolo $TENSORRT $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"

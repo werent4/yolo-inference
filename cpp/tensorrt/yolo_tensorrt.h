@@ -13,6 +13,7 @@
 #include "yolo_classify.h"
 #include "yolo_detect.h"
 #include "yolo_segment.h"
+#include "yolo_multiclassify.h"
 #include "utils.h"
 #include <NvInfer.h>
 #include <NvInferRuntime.h>
@@ -313,4 +314,58 @@ private:
 	 */
 	float* m_output_box_device;
 #endif // _CUDA_POSTPROCESS
+};
+
+class YOLO_TensorRT_MuliLabelClassify : public YOLO_TensorRT, public YOLO_MultiClassify
+{
+	public:
+	/**
+	 * @description: 					initialization interface
+	 * @param {Algo_Type} algo_type		algorithm type
+	 * @param {Device_Type} device_type	device type
+	 * @param {Model_Type} model_type	model type
+	 * @param {string} model_path		model path
+	 * @return {*}
+	 */
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+
+private:
+	/**
+	 * @description: model pre-process
+	 * @return {*}
+	 */
+	void pre_process();
+
+	/**
+	 * @description: model inference
+	 * @return {*}
+	 */
+	void process();
+
+	/**
+	 * @description: model post-process
+	 * @return {*}
+	 */
+	void post_process();
+
+	/**
+	 * @description: resource release
+	 * @return {*}
+	 */
+	void release();
+
+	/**
+	 * @description: input and output tensor bindings
+	 */
+	float* m_bindings[2];
+
+	/**
+	 * @description: pointer to input on host
+	 */
+	float* m_input_host;
+
+	/**
+	 * @description: pointer to output on device
+	 */
+	float* m_output_device;
 };
