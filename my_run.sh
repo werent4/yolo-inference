@@ -52,48 +52,35 @@ INT8=2
 # -----------------------------------------------------------------------------
 # ONNX backend runs
 # -----------------------------------------------------------------------------
-## GPU inference
-# -----------------------------------------------------------------------------
 
-# ./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
-
-
-
-## CPU inference
-# -----------------------------------------------------------------------------
-# echo -e "${BLUE}Running YOLOv11 detection with ONNXRuntime on CPU (FP32)${NC}"
-# ./build/yolo $ONNXRUNTIME $DETECT $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/yolo11n.onnx"
-# echo -e "${GREEN}Inference complete!${NC}\n"
-
-
-
-
+echo -e "${GREEN}Running ONNX backend...${NC}"
+./build/yolo $ONNXRUNTIME $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
+./build/yolo $ONNXRUNTIME $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 
 # -----------------------------------------------------------------------------
 # Libtorch backend runs
 # -----------------------------------------------------------------------------
+echo -e "${GREEN}Running Libtorch backend...${NC}"
+./build/yolo $LIBTORCH $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
 ./build/yolo $LIBTORCH $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/torchscript/cls_yolo11n-cls.torchscript"
 
 # -----------------------------------------------------------------------------
 # OpenCV backend runs
 # -----------------------------------------------------------------------------
-
-# ./build/yolo $OPENCV $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
-
+echo -e "${GREEN}Running OpenCV backend...${NC}"
+./build/yolo $OPENCV $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
 ./build/yolo $OPENCV $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/onnx/cls_yolo11n-cls.onnx"
-
 
 # -----------------------------------------------------------------------------
 # OpenVINO backend runs
 # -----------------------------------------------------------------------------
-
-# ./build/yolo $OPENVINO $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
-
-# ./build/yolo $OPENVINO $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
+echo -e "${GREEN}Running OpenVINO backend...${NC}"
+./build/yolo $OPENVINO $CLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
+./build/yolo $OPENVINO $MULTILABELCLASSIFY $YOLOV11 $CPU $FP32 "${WEIGHTS_DIR}/openvino/cls_yolo11n-cls_openvino_model/yolo11n-cls.xml"
 
 # -----------------------------------------------------------------------------
 # TensorRT backend runs
 # -----------------------------------------------------------------------------
-# ./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
-
-# ./build/yolo $TENSORRT $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
+echo -e "${GREEN}Running TensorRT backend...${NC}"
+./build/yolo $TENSORRT $CLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
+./build/yolo $TENSORRT $MULTILABELCLASSIFY $YOLOV11 $GPU $FP32 "${WEIGHTS_DIR}/engine/yolo11n-cls.engine"
