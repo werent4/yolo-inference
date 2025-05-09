@@ -90,7 +90,7 @@ public:
 	 * @param {string} model_path		model path
 	 * @return {*}
 	 */
-	virtual void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path) = 0;
+	virtual void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height) = 0;
 
 	/**
 	 * @description: 				inference interface
@@ -109,6 +109,23 @@ public:
 	virtual void release() {};
 
 protected:
+	/**
+	 * @description: set input image width and height
+	 * @param {int} new_width	new width
+	 * @param {int} new_height	new height
+	 * @return {*}
+	 */
+	bool setWH(int new_width, int new_height)
+	{
+		if (new_width <= 0 || new_height <= 0)
+		{
+			std::cerr << "width and height must be greater than 0!\nDefault width and height will be used!" << std::endl;
+			return false;
+		}
+		m_input_width = new_width;
+		m_input_height = new_height;
+		return true;
+	}
 	/**
 	 * @description: model pre-process interface
 	 * @return {*}

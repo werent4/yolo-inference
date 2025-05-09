@@ -47,7 +47,7 @@ void YOLO_ONNXRuntime::init(const Algo_Type algo_type, const Device_Type device_
 #endif
 }
 
-void YOLO_ONNXRuntime_Classify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_ONNXRuntime_Classify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
 	{
@@ -56,7 +56,12 @@ void YOLO_ONNXRuntime_Classify::init(const Algo_Type algo_type, const Device_Typ
 	}
 	YOLO_ONNXRuntime::init(algo_type, device_type, model_type, model_path);
 
-	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	bool was_set = setWH(new_width, new_height);
+	if (was_set) // recalculate for user specific width and height
+	{
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+	else if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11) // use default width and height for cls model
 	{
 		m_input_width = 224;
 		m_input_height = 224;
@@ -81,7 +86,7 @@ void YOLO_ONNXRuntime_Classify::init(const Algo_Type algo_type, const Device_Typ
 	m_output_host = (float*)malloc(sizeof(float) * m_class_num);
 }
 
-void YOLO_ONNXRuntime_Detect::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_ONNXRuntime_Detect::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv6 && algo_type != YOLOv7 && algo_type != YOLOv8 && algo_type != YOLOv9 && algo_type != YOLOv10 && algo_type != YOLOv11)
 	{
@@ -89,6 +94,13 @@ void YOLO_ONNXRuntime_Detect::init(const Algo_Type algo_type, const Device_Type 
 		std::exit(-1);
 	}
 	YOLO_ONNXRuntime::init(algo_type, device_type, model_type, model_path);
+	bool was_set = setWH(new_width, new_height);
+	if (!was_set) // reuse default width and height
+	{
+		// hypotetically, I dont need to reset this? look around 
+		m_input_width = 640;
+		m_input_height = 640;
+	}
 
 	if (m_algo_type == YOLOv5 || m_algo_type == YOLOv7)
 	{
@@ -130,7 +142,7 @@ void YOLO_ONNXRuntime_Detect::init(const Algo_Type algo_type, const Device_Type 
 	m_output_host = (float*)malloc(sizeof(float) * m_output_numdet);
 }
 
-void YOLO_ONNXRuntime_Segment::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_ONNXRuntime_Segment::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
 	{
@@ -138,6 +150,14 @@ void YOLO_ONNXRuntime_Segment::init(const Algo_Type algo_type, const Device_Type
 		std::exit(-1);
 	}
 	YOLO_ONNXRuntime::init(algo_type, device_type, model_type, model_path);
+
+	bool was_set = setWH(new_width, new_height);
+	if (!was_set) // reuse default width and height
+	{
+		// hypotetically, I dont need to reset this? look around 
+		m_input_width = 640;
+		m_input_height = 640;
+	}
 
 	if (m_algo_type == YOLOv5)
 	{
@@ -176,7 +196,7 @@ void YOLO_ONNXRuntime_Segment::init(const Algo_Type algo_type, const Device_Type
 	m_output1_host = (float*)malloc(sizeof(float) * m_output_numseg);
 }
 
-void YOLO_ONNXRuntime_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_ONNXRuntime_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	// this code is same as YOLO_ONNXRuntime_Classify::init 
 	// TODO: refactor this code 
@@ -187,7 +207,12 @@ void YOLO_ONNXRuntime_MuliLabelClassify::init(const Algo_Type algo_type, const D
 	}
 	YOLO_ONNXRuntime::init(algo_type, device_type, model_type, model_path);
 
-	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
+	bool was_set = setWH(new_width, new_height);
+	if (was_set) // recalculate for user specific width and height
+	{
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+	else if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11) // use default width and height for cls model
 	{
 		m_input_width = 224;
 		m_input_height = 224;

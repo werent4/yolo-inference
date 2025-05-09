@@ -9,7 +9,7 @@ def main():
 #        print("Usage:\n python transpose.py yolov8n.onnx")
 #        return 1
 
-   file = "/home/werent4/yolo-inference/weights/onnx/cls_yolo11n.onnx" 
+   file = "/home/werent4/yolo-inference/weights/onnx/sz-640-yolo11n.onnx" 
    if not os.path.exists(file):
        print(f"Not exist path: {file}")
        return 1

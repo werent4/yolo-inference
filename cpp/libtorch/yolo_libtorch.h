@@ -29,8 +29,7 @@ public:
 	 * @param {Device_Type} device_type	device type
 	 * @param {Model_Type} model_type	model type
 	 * @param {string} model_path		model path
-	 * @return {*}
-	 */
+	 * @return {*, const int new_width, const int new_height	 */
 	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
 
 protected:
@@ -69,7 +68,7 @@ public:
 	 * @param {string} model_path		model path
 	 * @return {*}
 	 */
-	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height);
 
 private:
 	/**
@@ -105,7 +104,7 @@ public:
 	 * @param {string} model_path		model path
 	 * @return {*}
 	 */
-	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height);
 
 private:
 	/**
@@ -141,7 +140,7 @@ public:
 	 * @param {string} model_path		model path
 	 * @return {*}
 	 */
-	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height);
 
 private:
 	/**
@@ -173,7 +172,7 @@ public:
 	 * @param {string} model_path		model path
 	 * @return {*}
 	 */
-	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path);
+	void init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height);
 
 private:
 	/**

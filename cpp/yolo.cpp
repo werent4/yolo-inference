@@ -71,7 +71,7 @@ void YOLO::infer(const std::string file_path, bool save_result, bool show_result
 
 		if (save_result)
 		{
-			std::string result_name = "./result/" + std::string(argv[1]) + std::string(argv[2]) + std::string(argv[3]) + std::string(argv[4]) + std::string(argv[5]) + ".jpg";
+			std::string result_name = "./result/" + std::string(argv[1]) + std::string(argv[2]) + std::string(argv[3]) + std::string(argv[4]) + std::string(argv[5]) + "sz-" + std::string(argv[7]) + ".jpg";
 			cv::imwrite(result_name, m_result);
 			std::cout << "save result to " << result_name << std::endl;
 		}
@@ -94,7 +94,7 @@ void YOLO::infer(const std::string file_path, bool save_result, bool show_result
 		cv::VideoWriter wri;
 		if (save_result)
 		{
-			std::string result_name = "./result/" + std::string(argv[1]) + std::string(argv[2]) + std::string(argv[3]) + std::string(argv[4]) + std::string(argv[5]) + ".avi";
+			std::string result_name = "./result/" + std::string(argv[1]) + std::string(argv[2]) + std::string(argv[3]) + std::string(argv[4]) + std::string(argv[5]) + "sz-" + std::string(argv[7]) + ".avi";
 			int width = int(cap.get(cv::CAP_PROP_FRAME_WIDTH));
     		int height = int(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
 			wri.open(result_name, cv::VideoWriter::fourcc('M', 'P', '4', '2'), 30, cv::Size(width, height));
