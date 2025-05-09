@@ -18,11 +18,11 @@ def main(args):
         os.remove(original_filename)
         print(f"Original model removed")
     
-    export_path = model.export(format=args.format, imgsz=224)
+    export_path = model.export(format=args.format, imgsz=args.img_size,)
     
     exported_filename = os.path.basename(export_path)
     
-    new_path = os.path.join(format_dir, f"cls_{exported_filename}")
+    new_path = os.path.join(format_dir, f"sz-{args.img_size}-{exported_filename}")
     shutil.move(export_path, new_path)
     
     print(f"Model exported to {new_path} in {args.format} format")
@@ -35,6 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("model", type=str, help="Path to the YOLO model file.")
     parser.add_argument("format", type=str, choices=["torchscript", "onnx", "openvino", "engine"], 
                         help="Format to convert the model to.")
+    parser.add_argument("--img-size", "-i", type=int, default=224,
+                        help="Image size for the model (default: 224).")
     parser.add_argument("--output-dir", "-o", type=str, default="weights",
                         help="Directory to save exported models (default: weights)")
 
