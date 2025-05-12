@@ -46,7 +46,7 @@ void YOLO_OpenCV::init(const Algo_Type algo_type, const Device_Type device_type,
 	}
 }
 
-void YOLO_OpenCV_Classify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_OpenCV_Classify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
 	{
@@ -54,6 +54,18 @@ void YOLO_OpenCV_Classify::init(const Algo_Type algo_type, const Device_Type dev
 		std::exit(-1);
 	}
 	YOLO_OpenCV::init(algo_type, device_type, model_type, model_path);
+
+	bool was_set = setWH(new_width, new_height);
+	if (was_set) // recalculate for user specific width and height
+	{
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+	else if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11) // use default width and height for cls model
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
 
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
@@ -63,7 +75,7 @@ void YOLO_OpenCV_Classify::init(const Algo_Type algo_type, const Device_Type dev
 	}
 }
 
-void YOLO_OpenCV_Detect::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_OpenCV_Detect::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv6 && algo_type != YOLOv7 && algo_type != YOLOv8 && algo_type != YOLOv9 && algo_type != YOLOv11)
 	{
@@ -71,6 +83,13 @@ void YOLO_OpenCV_Detect::init(const Algo_Type algo_type, const Device_Type devic
 		std::exit(-1);
 	}
 	YOLO_OpenCV::init(algo_type, device_type, model_type, model_path);
+	bool was_set = setWH(new_width, new_height);
+	if (!was_set) // reuse default width and height
+	{
+		// hypotetically, I dont need to reset this? look around 
+		m_input_width = 640;
+		m_input_height = 640;
+	}
 
 	if (m_algo_type == YOLOv5 || m_algo_type == YOLOv7)
 	{
@@ -90,7 +109,7 @@ void YOLO_OpenCV_Detect::init(const Algo_Type algo_type, const Device_Type devic
 	m_output_numdet = 1 * m_output_numprob * m_output_numbox;
 }
 
-void YOLO_OpenCV_Segment::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_OpenCV_Segment::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
 	{
@@ -98,6 +117,13 @@ void YOLO_OpenCV_Segment::init(const Algo_Type algo_type, const Device_Type devi
 		std::exit(-1);
 	}
 	YOLO_OpenCV::init(algo_type, device_type, model_type, model_path);
+	bool was_set = setWH(new_width, new_height);
+	if (!was_set) // reuse default width and height
+	{
+		// hypotetically, I dont need to reset this? look around 
+		m_input_width = 640;
+		m_input_height = 640;
+	}
 
 	if (m_algo_type == YOLOv5)
 	{
@@ -113,7 +139,7 @@ void YOLO_OpenCV_Segment::init(const Algo_Type algo_type, const Device_Type devi
 	m_output_numseg = m_mask_params.seg_channels * m_mask_params.seg_width * m_mask_params.seg_height;
 }
 
-void YOLO_OpenCV_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path)
+void YOLO_OpenCV_MuliLabelClassify::init(const Algo_Type algo_type, const Device_Type device_type, const Model_Type model_type, const std::string model_path, const int new_width, const int new_height)
 {
 	if (algo_type != YOLOv5 && algo_type != YOLOv8 && algo_type != YOLOv11)
 	{
@@ -121,6 +147,18 @@ void YOLO_OpenCV_MuliLabelClassify::init(const Algo_Type algo_type, const Device
 		std::exit(-1);
 	}
 	YOLO_OpenCV::init(algo_type, device_type, model_type, model_path);
+
+	bool was_set = setWH(new_width, new_height);
+	if (was_set) // recalculate for user specific width and height
+	{
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
+	else if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11) // use default width and height for cls model
+	{
+		m_input_width = 224;
+		m_input_height = 224;
+		m_input_numel = 1 * 3 * m_input_width * m_input_height;
+	}
 
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
