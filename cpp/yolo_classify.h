@@ -54,4 +54,9 @@ protected:
 	 * @description: classification network output
 	 */
 	OutputCls m_output_cls;
+
+	/**
+	 * @description: use letterbox in pre-process or use default center crop
+	 */
+	bool m_use_letterbox = false;
 };

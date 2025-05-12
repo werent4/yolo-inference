@@ -115,17 +115,19 @@ protected:
 	 * @param {int} new_height	new height
 	 * @return {*}
 	 */
-	bool setWH(int new_width, int new_height)
-	{
-		if (new_width <= 0 || new_height <= 0)
-		{
-			std::cerr << "width and height must be greater than 0!\nDefault width and height will be used!" << std::endl;
-			return false;
-		}
-		m_input_width = new_width;
-		m_input_height = new_height;
-		return true;
-	}
+	bool setWH(int new_width, int new_height);
+
+	/**
+	 * @description: 				LetterBox image process
+	 * @param {Mat&} input_image	input image
+	 * @param {Mat&} output_image	output image
+	 * @param {Vec4d&} params		transform parameters
+	 * @param {Size} shape			output image shape
+	 * @param {Scalar} color		filled color
+	 * @return {*}
+	 */
+	void LetterBox(cv::Mat& input_image, cv::Mat& output_image, cv::Vec4d& params, cv::Size shape = cv::Size(640, 640), cv::Scalar color = cv::Scalar(114, 114, 114));
+
 	/**
 	 * @description: model pre-process interface
 	 * @return {*}
@@ -143,6 +145,16 @@ protected:
 	 * @return {*}
 	 */
 	virtual void post_process() = 0;
+
+	/**
+	 * @description: is in debug mode
+	 */
+	bool m_debug_mode = false;
+
+	/**
+	 * @description: LetterBox related parameters
+	 */
+	cv::Vec4d m_params;
 
 	/**
 	 * @description: input image

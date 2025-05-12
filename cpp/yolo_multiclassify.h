@@ -66,4 +66,8 @@ struct OutputMultiCls
      */
     OutputMultiCls m_output_multicls;
 
+	/**
+	 * @description: use letterbox in pre-process or use default center crop
+	 */
+	bool m_use_letterbox = false;
 };
