@@ -161,51 +161,59 @@ void YOLO_Libtorch_MultiLabelClassify::init(const Algo_Type algo_type, const Dev
 
 void YOLO_Libtorch_Classify::pre_process()
 {
-	cv::Mat crop_image;
+	cv::Mat image;
 	if (m_algo_type == YOLOv5)
 	{
-		//CenterCrop
-		int crop_size = std::min(m_image.cols, m_image.rows);
-		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
-		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+		} else {
+			//CenterCrop
+			int crop_size = std::min(m_image.cols, m_image.rows);
+			int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+			image = m_image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
-		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
-		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
+		cv::subtract(image, cv::Scalar(0.406, 0.456, 0.485), image);
+		cv::divide(image, cv::Scalar(0.225, 0.224, 0.229), image);
 
-		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+		cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
 	}
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
-		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+			cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+		} else {
+			cv::cvtColor(m_image, image, cv::COLOR_BGR2RGB);
 
-		if (m_image.cols > m_image.rows)
-			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
-		else
-			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+			if (m_image.cols > m_image.rows)
+				cv::resize(image, image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+			else
+				cv::resize(image, image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
 
-		//CenterCrop
-		int crop_size = std::min(crop_image.cols, crop_image.rows);
-		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
-		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+			//CenterCrop
+			int crop_size = std::min(image.cols, image.rows);
+			int  left = (image.cols - crop_size) / 2, top = (image.rows - crop_size) / 2;
+			image = image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
 	}
 
 
 	torch::Tensor input;
 	if (m_model_type == FP32)
 	{
-		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kFloat).to(m_device);
+		input = torch::from_blob(image.data, { 1, image.rows, image.cols, image.channels() }, torch::kFloat).to(m_device);
 	}
 	else if (m_model_type == FP16)
 	{
-		crop_image.convertTo(crop_image, CV_16FC3);
-		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kHalf).to(m_device);
+		image.convertTo(image, CV_16FC3);
+		input = torch::from_blob(image.data, { 1, image.rows, image.cols, image.channels() }, torch::kHalf).to(m_device);
 	}
 	input = input.permute({ 0, 3, 1, 2 }).contiguous();
 	m_input.clear();
@@ -262,51 +270,59 @@ void YOLO_Libtorch_Segment::pre_process()
 
 void YOLO_Libtorch_MultiLabelClassify::pre_process()
 {
-	cv::Mat crop_image;
+	cv::Mat image;
 	if (m_algo_type == YOLOv5)
 	{
-		//CenterCrop
-		int crop_size = std::min(m_image.cols, m_image.rows);
-		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
-		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+		} else {
+			//CenterCrop
+			int crop_size = std::min(m_image.cols, m_image.rows);
+			int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+			image = m_image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
-		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
-		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
+		cv::subtract(image, cv::Scalar(0.406, 0.456, 0.485), image);
+		cv::divide(image, cv::Scalar(0.225, 0.224, 0.229), image);
 
-		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+		cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
 	}
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
-		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+			cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+		} else {
+			cv::cvtColor(m_image, image, cv::COLOR_BGR2RGB);
 
-		if (m_image.cols > m_image.rows)
-			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
-		else
-			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+			if (m_image.cols > m_image.rows)
+				cv::resize(image, image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+			else
+				cv::resize(image, image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
 
-		//CenterCrop
-		int crop_size = std::min(crop_image.cols, crop_image.rows);
-		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
-		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
+			//CenterCrop
+			int crop_size = std::min(image.cols, image.rows);
+			int  left = (image.cols - crop_size) / 2, top = (image.rows - crop_size) / 2;
+			image = image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
 	}
 
 
 	torch::Tensor input;
 	if (m_model_type == FP32)
 	{
-		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kFloat).to(m_device);
+		input = torch::from_blob(image.data, { 1, image.rows, image.cols, image.channels() }, torch::kFloat).to(m_device);
 	}
 	else if (m_model_type == FP16)
 	{
-		crop_image.convertTo(crop_image, CV_16FC3);
-		input = torch::from_blob(crop_image.data, { 1, crop_image.rows, crop_image.cols, crop_image.channels() }, torch::kHalf).to(m_device);
+		image.convertTo(image, CV_16FC3);
+		input = torch::from_blob(image.data, { 1, image.rows, image.cols, image.channels() }, torch::kHalf).to(m_device);
 	}
 	input = input.permute({ 0, 3, 1, 2 }).contiguous();
 	m_input.clear();

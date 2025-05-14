@@ -239,45 +239,52 @@ void YOLO_ONNXRuntime_MuliLabelClassify::init(const Algo_Type algo_type, const D
 
 void YOLO_ONNXRuntime_Classify::pre_process()
 {
-	cv::Mat crop_image;
+	cv::Mat image;
 	if (m_algo_type == YOLOv5)
 	{
-		//CenterCrop
-		int crop_size = std::min(m_image.cols, m_image.rows);
-		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
-		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+		} else {
+			//CenterCrop
+			int crop_size = std::min(m_image.cols, m_image.rows);
+			int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+			image = m_image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
-		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
-		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
+		cv::subtract(image, cv::Scalar(0.406, 0.456, 0.485), image);
+		cv::divide(image, cv::Scalar(0.225, 0.224, 0.229), image);
 
-		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+		cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
 	}
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
-		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+			cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+		} else {
+			cv::cvtColor(m_image, image, cv::COLOR_BGR2RGB);
 
-		if (m_image.cols > m_image.rows)
-			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
-		else
-			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+			if (m_image.cols > m_image.rows)
+				cv::resize(image, image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+			else
+				cv::resize(image, image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
 
-		//CenterCrop
-		int crop_size = std::min(crop_image.cols, crop_image.rows);
-		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
-		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+			//CenterCrop
+			int crop_size = std::min(image.cols, image.rows);
+			int  left = (image.cols - crop_size) / 2, top = (image.rows - crop_size) / 2;
+			image = image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
 	}
 
 	std::vector<cv::Mat> split_images;
-	cv::split(crop_image, split_images);
+	cv::split(image, split_images);
 	m_input.clear();
-	for (size_t i = 0; i < crop_image.channels(); ++i)
+	for (size_t i = 0; i < image.channels(); ++i)
 	{
 		std::vector<float> split_image_data = split_images[i].reshape(1, 1);
 		m_input.insert(m_input.end(), split_image_data.begin(), split_image_data.end());
@@ -342,45 +349,52 @@ void YOLO_ONNXRuntime_Segment::pre_process()
 
 void YOLO_ONNXRuntime_MuliLabelClassify::pre_process()
 {
-	cv::Mat crop_image;
+	cv::Mat image;
 	if (m_algo_type == YOLOv5)
 	{
-		//CenterCrop
-		int crop_size = std::min(m_image.cols, m_image.rows);
-		int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
-		crop_image = m_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+		} else {
+			//CenterCrop
+			int crop_size = std::min(m_image.cols, m_image.rows);
+			int left = (m_image.cols - crop_size) / 2, top = (m_image.rows - crop_size) / 2;
+			image = m_image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
-		cv::subtract(crop_image, cv::Scalar(0.406, 0.456, 0.485), crop_image);
-		cv::divide(crop_image, cv::Scalar(0.225, 0.224, 0.229), crop_image);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
+		cv::subtract(image, cv::Scalar(0.406, 0.456, 0.485), image);
+		cv::divide(image, cv::Scalar(0.225, 0.224, 0.229), image);
 
-		cv::cvtColor(crop_image, crop_image, cv::COLOR_BGR2RGB);
+		cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
 	}
 	if (m_algo_type == YOLOv8 || m_algo_type == YOLOv11)
 	{
-		cv::cvtColor(m_image, crop_image, cv::COLOR_BGR2RGB);
+		if (m_use_letterbox){
+			LetterBox(m_image, image, m_params, cv::Size(m_input_width, m_input_height));
+			cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+		} else {
+			cv::cvtColor(m_image, image, cv::COLOR_BGR2RGB);
 
-		if (m_image.cols > m_image.rows)
-			cv::resize(crop_image, crop_image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
-		else
-			cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
+			if (m_image.cols > m_image.rows)
+				cv::resize(image, image, cv::Size(m_input_height * m_image.cols / m_image.rows, m_input_height));
+			else
+				cv::resize(image, image, cv::Size(m_input_width, m_input_width * m_image.rows / m_image.cols));
 
-		//CenterCrop
-		int crop_size = std::min(crop_image.cols, crop_image.rows);
-		int  left = (crop_image.cols - crop_size) / 2, top = (crop_image.rows - crop_size) / 2;
-		crop_image = crop_image(cv::Rect(left, top, crop_size, crop_size));
-		cv::resize(crop_image, crop_image, cv::Size(m_input_width, m_input_height));
-
+			//CenterCrop
+			int crop_size = std::min(image.cols, image.rows);
+			int  left = (image.cols - crop_size) / 2, top = (image.rows - crop_size) / 2;
+			image = image(cv::Rect(left, top, crop_size, crop_size));
+			cv::resize(image, image, cv::Size(m_input_width, m_input_height));
+		}
 		//Normalize
-		crop_image.convertTo(crop_image, CV_32FC3, 1. / 255.);
+		image.convertTo(image, CV_32FC3, 1. / 255.);
 	}
 
 	std::vector<cv::Mat> split_images;
-	cv::split(crop_image, split_images);
+	cv::split(image, split_images);
 	m_input.clear();
-	for (size_t i = 0; i < crop_image.channels(); ++i)
+	for (size_t i = 0; i < image.channels(); ++i)
 	{
 		std::vector<float> split_image_data = split_images[i].reshape(1, 1);
 		m_input.insert(m_input.end(), split_image_data.begin(), split_image_data.end());
